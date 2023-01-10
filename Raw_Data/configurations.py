@@ -1,5 +1,7 @@
 import os
 import pathes
+from Raw_Data.raw_data_consts import TIMESTAMP, RIGHT_PUPIL, LEFT_PUPIL, HAND_LOC_Z, HAND_LOC_X, HAND_LOC_Y
+
 # pathes
 # generate path of to data directories, without dependency on out locaation
 # relational data directories location should be fixed
@@ -10,10 +12,10 @@ tracker_file_name = "TrackersOutputData.csv"
 relevant_rows_filter = [(3, "Room"), (4, "NoBlockView")]
 unrelevant_trials = (-1, 0)
 tracker_idx_col = 'idx'
-tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'), (29, 'Hand_loc_Z'), (49, 'right_pupil'), 
-                         (50, 'left_pupil'),
+tracker_relevant_data = [(1, tracker_idx_col), (6, TIMESTAMP), (29, HAND_LOC_Z), (49, RIGHT_PUPIL),
+                         (50, LEFT_PUPIL),
                          ]
-tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'), (27, 'Hand_loc_X'), (28, 'Hand_loc_Y'), (29, 'Hand_loc_Z'),]
+tracker_relevant_data = [(1, tracker_idx_col), (6, TIMESTAMP), (27, HAND_LOC_X), (28, HAND_LOC_Y), (29, HAND_LOC_Z),]
 to_drop = 0 # 'Hand_loc_Z'
 start_signal = 0
 # for hand: tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'), (27, 'Hand_loc_X'), (28, 'Hand_loc_Y'), (29, 'Hand_loc_Z'),]
@@ -69,3 +71,7 @@ rate_hz = 11
 
 # padding
 padding_value = -10
+
+# pupil preprocessing
+normalization_window = 100
+blink_window = 100

@@ -1,0 +1,6 @@
+TIMESTAMP = 'timestamp'
+HAND_LOC_X = 'hand_loc_x'
+HAND_LOC_Y = 'hand_loc_y'
+HAND_LOC_Z = 'hand_loc_z'
+RIGHT_PUPIL = 'right_pupil'
+LEFT_PUPIL = 'left_pupil'
