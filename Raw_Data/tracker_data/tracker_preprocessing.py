@@ -77,8 +77,8 @@ def baseline_normalization(df):
 
 
 def smoothing(df, col_to_smooth):
-    df.loc[:, col_to_smooth] = df.loc[:, col_to_smooth].rolling(cfg.smoothing_window, win_type="hanning", min_periods=cfg.smoothing_window).sum()
-    df.loc[:, col_to_smooth] /= (cfg.smoothing_window - 1) / 2
+    df.loc[:, col_to_smooth] = df.loc[:, col_to_smooth].rolling(cfg.smoothing_window, min_periods=cfg.smoothing_window).sum()
+    df.loc[:, col_to_smooth] /= cfg.smoothing_window
     df.dropna(inplace=True)
     df.reset_index(inplace=True, drop=True)
     return df
