@@ -4,7 +4,7 @@ import numpy as np
 from Raw_Data.raw_data_consts import TIMESTAMP, RIGHT_PUPIL, LEFT_PUPIL
 from Raw_Data.tracker_data.read_trackers import read_tracker
 from Raw_Data.tracker_data.filter_trials import filter_data, filter_short_trials
-from Raw_Data.tracker_data.intepolate import data_interpolation
+from Raw_Data.tracker_data.intepolate import data_interpolation, interpolate
 from Raw_Data.utils.timestamp_correction import timestamp_correction
 from Raw_Data.utils.indices_of_interest import idx_of_return, idx_of_start, idx_of_back
 import Raw_Data.configurations as cfg
@@ -17,6 +17,7 @@ def reset_index(data):
     return data
 
 
+@filter_short_trials
 def choose_relevent_parts(data, mode="all", ts_name='Hand_loc_Y'):
     # define filter function based on the chosen mode
     if mode == "all":
@@ -36,7 +37,7 @@ def choose_relevent_parts(data, mode="all", ts_name='Hand_loc_Y'):
     return data
 
 
-def no_pupil_frame_filter(df):
+def deblinking(df):
     output_cols = df.columns
 
     df['is_blink'] = (df[RIGHT_PUPIL] == -1) | (df[LEFT_PUPIL] == -1)
@@ -45,39 +46,25 @@ def no_pupil_frame_filter(df):
     df['blink_diff'] = np.where((df['blink_diff'] == -1) | (df['blink_diff_shift'] == -1),
                                 df['blink_diff_shift'], df['blink_diff'])
 
-    blink_df = df[[TIMESTAMP, 'blink_diff']]
-    blink_df_start = blink_df[blink_df['blink_diff'] == 1]
-    blink_df_end = blink_df[blink_df['blink_diff'] == -1]
-    blink_df['blink_diff'] = 0
+    blink_change_df = df[df['blink_diff'] != 0].loc[:, [TIMESTAMP, 'blink_diff']]
+    for index, blink_change in blink_change_df.iterrows():
+        time = blink_change[TIMESTAMP]
+        direction = blink_change['blink_diff'] * -1
+        time_threshold = time + cfg.blink_window * direction
+        threshold_fun = cfg.threshold_funs[direction]
+        idx = index
 
-    blink_df_start[TIMESTAMP] -= cfg.blink_window
-    blink_df_end[TIMESTAMP] = cfg.blink_window
+        while 0 < idx < len(df) and threshold_fun(df.loc[idx, TIMESTAMP], time_threshold):
+            df.loc[idx, 'is_blink'] = 1
+            idx += direction
 
-    blink_df = pd.concat([blink_df_start, blink_df_end, blink_df])
-    blink_df = blink_df.sort_values(TIMESTAMP)
-    blink_df['blink_cum_sum'] = blink_df['blink_diff']
-    blink_df['is_blink'] = (blink_df['blink_cum_sum'] > 0).astype(int)
-
-    blink_df = blink_df[[TIMESTAMP, 'is_blink']]
-
-    df = df.merge(blink_df, on='timestamp', how='inner')
-
-    df = df[df['is_blink'] == 0]
-
-    df = df[output_cols]
-    return df
-
-
-def no_pupil_frame_filter_all(data):
-    for i in range(len(data)):
-        df = data[i][1]
-        data[i] = (data[i][0], no_pupil_frame_filter(df))
-
-    return data
+    deblinked_df = df[df['is_blink'] == 0]
+    deblinked_df = deblinked_df[output_cols]
+    return deblinked_df
 
 
 def baseline_normalization(df):
-    start_time = df.loc[TIMESTAMP, 0]
+    start_time = df.loc[0, TIMESTAMP]
     trial_beginning = df[df[TIMESTAMP] < start_time + cfg.normalization_window]
 
     right_pupil_median = trial_beginning[RIGHT_PUPIL].median()
@@ -89,10 +76,29 @@ def baseline_normalization(df):
     return df
 
 
-def baseline_normalization_all(data):
+def smoothing(df, col_to_smooth):
+    df.loc[:, col_to_smooth] = df.loc[:, col_to_smooth].rolling(cfg.smoothing_window, win_type="hanning", min_periods=cfg.smoothing_window).sum()
+    df.loc[:, col_to_smooth] /= (cfg.smoothing_window - 1) / 2
+    df.dropna(inplace=True)
+    df.reset_index(inplace=True, drop=True)
+    return df
+
+
+def pupil_preprocessing(data):
     for i in range(len(data)):
+        idx = data[i][0]
         df = data[i][1]
-        data[i] = (data[i][0], baseline_normalization(df))
+        x = df.copy()
+
+        df = deblinking(df)
+        if len(df) < cfg.too_short_trial:
+            data[i] = (-1, -1)
+            continue
+
+        df = interpolate(df)
+        df = smoothing(df, [RIGHT_PUPIL, LEFT_PUPIL])
+        df = baseline_normalization(df)
+        data[i] = (idx, df)
 
     return data
 
@@ -138,17 +144,13 @@ def tracker_preprocessing(subject_num):
 
     # if the signal is pupil dimeteter, throw rows with -1 values
     if cfg.pathes.trial_mode.startswith('pupil'):
-        data = baseline_normalization_all(data)
-        data = no_pupil_frame_filter_all(data)
+        data = pupil_preprocessing(data)
 
     # filter trials
     data = filter_data(data)
 
     # choose relevant part of the trial
     data = choose_relevent_parts(data, mode='all')
-
-    # filter trials with to little amount of data left
-    data = filter_short_trials(data)
 
     # drop extra columns
     if cfg.to_drop:

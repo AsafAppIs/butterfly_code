@@ -1,13 +1,13 @@
 import os
 
-dataset_mode = 'unreal'
+dataset_mode = 'ophir'
 
 # data_mode = 'kinematic'
 data_mode = 'eyes'
 
-trial_mode = 'pupil'
+trial_mode = 'pupil_test'
 # trial_mode = 'gaze'
-trial_mode = 'all-minimal'
+# trial_mode = 'all-minimal'
 
 data_type = 'all'
 # features_type = 'comprehensive'

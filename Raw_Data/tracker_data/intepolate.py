@@ -8,10 +8,13 @@ import Raw_Data.configurations as cfg
 def interpolate(data):
     kind='cubic'
     if cfg.pathes.trial_mode.startswith('pupil'):
-        kind =  'linear'   
+        kind = 'linear'
     
     original_time = np.array(data['timestamp'])
-    new_time = np.arange(0, original_time[-1], cfg.rate_hz)
+    new_time = np.arange(original_time[0], original_time[-1], cfg.rate_hz)
+
+    if (len(new_time) == len(original_time)) and ((new_time == original_time).all()):
+        return data
     
     new_data = [new_time]
     

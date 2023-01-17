@@ -12,11 +12,24 @@ tracker_file_name = "TrackersOutputData.csv"
 relevant_rows_filter = [(3, "Room"), (4, "NoBlockView")]
 unrelevant_trials = (-1, 0)
 tracker_idx_col = 'idx'
-tracker_relevant_data = [(1, tracker_idx_col), (6, TIMESTAMP), (29, HAND_LOC_Z), (49, RIGHT_PUPIL),
-                         (50, LEFT_PUPIL),
-                         ]
-tracker_relevant_data = [(1, tracker_idx_col), (6, TIMESTAMP), (27, HAND_LOC_X), (28, HAND_LOC_Y), (29, HAND_LOC_Z),]
-to_drop = 0 # 'Hand_loc_Z'
+to_drop = 0
+
+if pathes.data_mode == "kinematic":
+    tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'), (27, 'Hand_loc_X'), (28, 'Hand_loc_Y'),
+                             (29, 'Hand_loc_Z'), ]
+elif pathes.data_mode == "eyes" and pathes.trial_mode.startswith("pupil"):
+    tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'), (29, 'Hand_loc_Z'),
+                             (49, 'right_pupil'), (50, 'left_pupil')]  # (48, 'LastObject')]
+    to_drop = ['Hand_loc_Z']
+elif pathes.data_mode == "eyes" and pathes.trial_mode.startswith("gaze"):
+    tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'),
+                             (17, 'Headset_global_x'), (18, 'Headset_global_y'), (19, 'Headset_global_z'),
+                             (24, 'Headset_euler_x'), (25, 'Headset_euler_y'), (26, 'Headset_euler_z'),
+                             (29, 'Hand_loc_Z'),
+                             (49, 'right_pupil'), (50, 'left_pupil'), (51, 'right_open'), (52, 'right_open'),
+                             (59, 'right_gaze_x'), (60, 'right_gaze_y'), (61, 'right_gaze_z'),
+                             (62, 'left_gaze_x'), (63, 'left_gaze_y'), (64, 'left_gaze_z'),
+                             ]
 start_signal = 0
 # for hand: tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'), (27, 'Hand_loc_X'), (28, 'Hand_loc_Y'), (29, 'Hand_loc_Z'),]
 # for pupil: tracker_relevant_data = [(1, tracker_idx_col), (6, 'timestamp'), (29, 'Hand_loc_Z'), (49, 'right_pupil'), (50, 'left_pupil'),]
@@ -39,7 +52,7 @@ trial_index = "#trial number"
 trial_relevant_cols = ['SensoMotoric Delay', 'angleChange']
 filter_training = -1
 trials_file_name = ['trials.csv']
-trial_labels_dic = {(0,0): 0, (0.05,0): 1, (0.1,0):2, (0.15,0):3, (0,0.2126):4, (0,0.2867):5, (0,0.364):6}
+trial_labels_dic = {(0,0): 0, (0.05,0): 1, (0.1,0):2, (0.15,0):3, (0.2,0):4}
 part_of_movement = pathes.trial_mode
 
 # for asaf:trial_labels_dic = {(0,0): 0, (0.05,0): 1, (0.1,0):2, (0.15,0):3, (0,0.2126):4, (0,0.2867):5, (0,0.364):6}
@@ -75,3 +88,5 @@ padding_value = -10
 # pupil preprocessing
 normalization_window = 100
 blink_window = 100
+smoothing_window = 5
+threshold_funs = {-1: lambda time, threshold: time >= threshold, 1: lambda time, threshold: time <= threshold}
