@@ -84,15 +84,15 @@ def smoothing(df, col_to_smooth):
     return df
 
 
+@filter_short_trials
 def pupil_preprocessing(data):
     for i in range(len(data)):
         idx = data[i][0]
         df = data[i][1]
-        x = df.copy()
 
         df = deblinking(df)
         if len(df) < cfg.too_short_trial:
-            data[i] = (-1, -1)
+            data[i] = (-1, [])
             continue
 
         df = interpolate(df)
